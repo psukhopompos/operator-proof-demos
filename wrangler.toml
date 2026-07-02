@@ -1,4 +1,4 @@
-name = "liminaut-proof-demos"
+name = "operator-proof-demos"
 main = "src/index.js"
 compatibility_date = "2025-07-05"
 account_id = "3fd9a5d35dd996a69a31322005ad7dec"

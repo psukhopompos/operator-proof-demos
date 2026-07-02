@@ -76,16 +76,16 @@ export const DATA = {
   sourcePolicy: GENERATED.sourcePolicy,
   demos: [
     {
-      id: "demo1",
-      route: "/demo1",
-      name: "Opportunity Intelligence OS",
-      promise: "Market topology, proof gaps, and simulated application movement from one corpus."
-    },
-    {
       id: "demo2",
       route: "/demo2",
       name: "Fiscal Reconciliation Copilot",
       promise: "Synthetic ERP incursion with evidence, lateral probes, operator gates, and exportable packets."
+    },
+    {
+      id: "demo1",
+      route: "/demo1",
+      name: "Opportunity Intelligence OS",
+      promise: "Market topology, proof gaps, and simulated application movement from one corpus."
     }
   ],
   demo1: {

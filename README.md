@@ -1,4 +1,4 @@
-# Liminaut Proof Demos
+# Operator Proof Demos
 
 Two public-safe portfolio demos hosted on Cloudflare Workers:
 
@@ -7,8 +7,8 @@ Two public-safe portfolio demos hosted on Cloudflare Workers:
 
 Live Worker:
 
-- https://liminaut-proof-demos.liminaught-3fd.workers.dev/demo1
-- https://liminaut-proof-demos.liminaught-3fd.workers.dev/demo2
+- https://operator-proof-demos.liminaught-3fd.workers.dev/demo2
+- https://operator-proof-demos.liminaught-3fd.workers.dev/demo1
 
 ## Shape
 

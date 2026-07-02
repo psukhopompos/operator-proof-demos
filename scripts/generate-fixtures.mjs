@@ -1,9 +1,16 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const projectRoot = process.cwd();
 const sourceRoot = path.resolve(projectRoot, "../career-ops/data/ai_builder_jobs_2026-06-30");
-const auditRoot = path.join(sourceRoot, "liminaut_reuse_audit_2026-07-01");
+const auditDir = (await readdir(sourceRoot, { withFileTypes: true }))
+  .find((entry) => entry.isDirectory() && entry.name.endsWith("_reuse_audit_2026-07-01"))?.name;
+
+if (!auditDir) {
+  throw new Error("Could not find reuse audit source folder.");
+}
+
+const auditRoot = path.join(sourceRoot, auditDir);
 
 const sources = {
   priorityRoles: path.join(sourceRoot, "application_strategy/outputs/priority_roles_top50.jsonl"),
@@ -59,13 +66,66 @@ function cleanUrl(value) {
   }
 }
 
+function titleCaseToken(value) {
+  const title = value
+    .split("_")
+    .filter(Boolean)
+    .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
+    .join(" ");
+  return title.replace(/\bAi\b/g, "AI");
+}
+
+function anonymousCompany(rank) {
+  return `Hiring Org ${String(rank).padStart(3, "0")}`;
+}
+
+function anonymousTitle(row) {
+  const role = row.role_archetype || row.canonical_role_archetype || "";
+  const workflow = row.workflow_archetype || row.primary_workflow_archetype || "";
+  const text = `${row.job_title || ""} ${role} ${workflow}`.toLowerCase();
+
+  if (text.includes("forward")) return "Forward-Deployed AI Engineer";
+  if (text.includes("automation") || text.includes("n8n") || text.includes("ops")) return "AI Automation Engineer";
+  if (text.includes("product")) return "AI Product Builder";
+  if (text.includes("platform") || text.includes("developer experience") || text.includes("devex")) return "AI Platform Engineer";
+  if (text.includes("full-stack") || text.includes("full stack")) return "AI-Native Full-Stack Builder";
+  if (text.includes("agent")) return "Agentic Workflow Engineer";
+  if (role) return titleCaseToken(role);
+  return "AI-Native Builder";
+}
+
+function publicPitch(row) {
+  const role = row.role_archetype || "ai_native_builder";
+  const workflow = row.workflow_archetype || "applied AI workflow";
+  if (role.includes("automation")) return "I build operator-visible automations with evidence trails, gates, and safe handoff points.";
+  if (role.includes("product")) return "I turn ambiguous AI product needs into working proof surfaces with full-stack delivery.";
+  if (role.includes("forward")) return "I enter unclear operational surfaces, recover the shape, and ship the next bounded proof.";
+  if (workflow.includes("prd")) return "I can move from rough product intent to a working app with traceable build decisions.";
+  return "I ship AI-native software with fast iteration, visible traces, and practical operator boundaries.";
+}
+
+function publicProofGap(row) {
+  const flags = row.risk_flags || [];
+  if (flags.some((flag) => /onsite|hybrid/i.test(flag))) return "Geography or onsite expectations may need positioning.";
+  if (flags.some((flag) => /years|senior/i.test(flag))) return "Seniority framing should be backed by concrete proof assets.";
+  if ((row.best_existing_proof_blocks || []).length === 0) return "Needs a small proof artifact before application.";
+  return "Needs role-specific packaging, but current proof blocks cover the core workflow.";
+}
+
+function publicRankingReason(row) {
+  const archetype = row.role_archetype || "AI-native role";
+  const workflow = row.workflow_archetype || "applied workflow";
+  return `High alignment with ${archetype} / ${workflow}, ranked by fit, proof fit, AI-native signal, and application friction.`;
+}
+
 function safeRole(row) {
   return {
     rank: row.rank,
     postingId: String(row.posting_id),
-    company: row.company,
-    jobTitle: row.job_title,
-    sourceUrl: cleanUrl(row.source_url),
+    company: anonymousCompany(row.rank),
+    jobTitle: anonymousTitle(row),
+    sourceUrl: "",
+    sourceLabel: `Synthetic posting ${String(row.rank).padStart(3, "0")}`,
     priorityScore: row.priority_score,
     fitScore: row.fit_score,
     proofFitScore: row.proof_fit_score,
@@ -74,11 +134,11 @@ function safeRole(row) {
     roleArchetype: row.role_archetype || "unknown",
     workflowArchetype: row.workflow_archetype || "unknown",
     contractAngle: row.contract_angle || "",
-    primaryPitchAngle: row.primary_pitch_angle || "",
+    primaryPitchAngle: publicPitch(row),
     bestExistingProofBlocks: row.best_existing_proof_blocks || [],
-    proofGap: row.proof_gap || "",
+    proofGap: publicProofGap(row),
     nextAction: row.next_action || "review",
-    whyRankedHere: row.why_ranked_here || "",
+    whyRankedHere: publicRankingReason(row),
     riskFlags: row.risk_flags || []
   };
 }

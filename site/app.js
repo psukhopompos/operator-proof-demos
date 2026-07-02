@@ -1,7 +1,7 @@
 const app = document.querySelector("#app");
 
 const state = {
-  activeDemo: location.pathname.includes("demo2") ? "demo2" : "demo1",
+  activeDemo: location.pathname.includes("demo1") ? "demo1" : "demo2",
   manifest: null,
   demo1: null,
   demo2: null,
@@ -93,13 +93,13 @@ function render() {
       <div class="brand">
         <div class="mark" aria-hidden="true"></div>
         <div>
-          <div class="brand-title">Liminaut Proof Demos</div>
+          <div class="brand-title">Operator Proof Demos</div>
           <div class="brand-subtitle">${h(activeTitle())}</div>
         </div>
       </div>
       <nav class="tabs" aria-label="Demo switcher">
-        <button class="tab ${state.activeDemo === "demo1" ? "active" : ""}" data-action="switch-demo" data-demo="demo1">Demo 1</button>
         <button class="tab ${state.activeDemo === "demo2" ? "active" : ""}" data-action="switch-demo" data-demo="demo2">Demo 2</button>
+        <button class="tab ${state.activeDemo === "demo1" ? "active" : ""}" data-action="switch-demo" data-demo="demo1">Demo 1</button>
       </nav>
       <div class="status-strip">
         <span>${h(state.manifest?.sourcePolicy || "")}</span>
@@ -213,7 +213,7 @@ function renderRolePanel(role) {
     <section class="panel">
       <div class="panel-head">
         <div class="panel-title">Selected Opportunity</div>
-        <a href="${h(role.sourceUrl)}" target="_blank" rel="noreferrer">source</a>
+        <span class="chip">${h(role.sourceLabel || "synthetic source")}</span>
       </div>
       <div class="panel-body">
         <div>
@@ -609,7 +609,7 @@ function bind() {
 }
 
 function switchPath(demo) {
-  const nextPath = demo === "demo2" ? "/demo2" : "/demo1";
+  const nextPath = demo === "demo1" ? "/demo1" : "/demo2";
   if (location.pathname !== nextPath) history.pushState({}, "", nextPath);
 }
 
@@ -695,7 +695,7 @@ function handleSearch(event) {
 }
 
 window.addEventListener("popstate", () => {
-  state.activeDemo = location.pathname.includes("demo2") ? "demo2" : "demo1";
+  state.activeDemo = location.pathname.includes("demo1") ? "demo1" : "demo2";
   render();
 });
 

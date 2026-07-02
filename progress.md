@@ -16,10 +16,13 @@
 - Interaction QA:
   - Demo 1 incursion advances through application steps and shows operator gate.
   - Demo 2 candidate-correction case prepares and approves a simulated operator gate.
-- Deployed with Wrangler to `https://liminaut-proof-demos.liminaught-3fd.workers.dev`.
-- Cloudflare Worker version: `13da3065-0b7d-4423-bf1d-8d78a9568781`.
+- Deployed with Wrangler to `https://operator-proof-demos.liminaught-3fd.workers.dev`.
+- Cloudflare Worker version: `dbc6a592-113f-4c23-9c8e-b26a8ccdca12`.
 - Live Worker QA:
   - `/api/health`, `/api/demo1`, and `/api/demo2` return deployed data.
-  - `/demo1` renders 50 role cards, application incursion, and no horizontal overflow.
+  - `/` opens Demo 2 first.
   - `/demo2` renders 5 fiscal cases, operator console, decision packet, and no horizontal overflow.
-- Sanitized deployed job source URLs to remove query strings and fragments; verified no deployed `token=` query remains.
+  - `/demo1` renders 50 anonymous role cards, application incursion, and no horizontal overflow.
+- Sanitized deployed job source URLs to remove query strings and fragments; verified no deployed query credential remains.
+- Renamed the public GitHub repo to `psukhopompos/operator-proof-demos`.
+- Removed the previous named Worker from Cloudflare after the new Worker was verified.

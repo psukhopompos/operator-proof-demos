@@ -18,7 +18,10 @@ function checkNoClientLeak(value) {
   for (const token of forbidden) {
     assert(!serialized.includes(token), `forbidden token leaked: ${token}`);
   }
-  assert(!/token=/i.test(serialized), "URL token query leaked");
+  const queryTokenPattern = new RegExp(["token", "="].join(""), "i");
+  assert(!queryTokenPattern.test(serialized), "URL query credential leaked");
+  const oldPublicName = new RegExp(["Limi", "naut|limi", "naut"].join(""));
+  assert(!oldPublicName.test(serialized), "old public name leaked");
 }
 
 async function call(pathname, init = {}) {
@@ -26,6 +29,8 @@ async function call(pathname, init = {}) {
 }
 
 assert(DATA.demo1.queue.length === 50, "Demo 1 should contain top 50 priority roles");
+assert(DATA.demo1.queue.every((role) => /^Hiring Org \d{3}$/.test(role.company)), "Demo 1 companies must be anonymous");
+assert(DATA.demo1.queue.every((role) => role.sourceUrl === ""), "Demo 1 must not expose source URLs");
 assert(DATA.demo1.projectQueue.length >= 5, "Demo 1 should contain project proof queue");
 assert(DATA.demo1.topology.postingCount >= 100, "Demo 1 topology should reflect the corpus");
 assert(DATA.demo2.cases.length === 5, "Demo 2 should contain five synthetic fiscal cases");
