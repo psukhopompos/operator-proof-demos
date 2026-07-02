@@ -54,3 +54,4 @@
   - `/api/demo5` returns 6 corpus traces, 5 lens groups, 15 temperature runs, and 5 frontier picks.
   - Cross-lens run mismatch falls back to a run from the selected lens.
   - Browser QA: `/demo5` renders the full eval lab, updates packets after lens selection, exposes no old brand/real-example hits, and has no horizontal overflow.
+- Paused before Demo 4 as the next product/design decision point. No Demo 4 code has been started.

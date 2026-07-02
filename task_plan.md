@@ -28,7 +28,7 @@ Demo 4 is intentionally not to be built yet.
 - [x] Verify Demo 3 locally and on the deployed Worker, then push.
 - [x] Add Demo 5 multi-lens eval lab with corpus, lens runs, frontier, and export packets.
 - [x] Verify Demo 5 locally and on the deployed Worker, then push.
-- [ ] Pause before Demo 4 and discuss scope with the user.
+- [x] Pause before Demo 4 and discuss scope with the user.
 
 ## Boundaries
 
@@ -37,6 +37,7 @@ Demo 4 is intentionally not to be built yet.
 - Demo 2 uses only synthetic notes, suppliers, route names, and evidence.
 - Demo 3 must use synthetic ticket/customer/product data only.
 - Demo 5 must use synthetic eval/lens data only.
+- Demo 4 is the next decision point; no Demo 4 code has been started.
 - Do not expose the old public name or personal brand in code, UI, URLs, docs, or deployed data.
 - The app should be usable immediately, not a landing page.
 
