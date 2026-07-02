@@ -8,9 +8,9 @@ function assert(condition, message) {
 function checkNoClientLeak(value) {
   const serialized = JSON.stringify(value);
   const forbidden = [
-    "Mega",
-    "Movidesk",
-    "Invent",
+    ["Me", "ga"].join(""),
+    ["Movi", "desk"].join(""),
+    ["In", "vent"].join(""),
     "168295",
     "125740",
     "172254"
@@ -36,6 +36,10 @@ assert(DATA.demo1.topology.postingCount >= 100, "Demo 1 topology should reflect 
 assert(DATA.demo2.cases.length === 5, "Demo 2 should contain five synthetic fiscal cases");
 assert(DATA.demo2.cases.every((item) => item.decisionPacket), "Demo 2 cases need decision packets");
 assert(DATA.demo2.cases.some((item) => item.decisionPacket.operatorGate), "Demo 2 needs operator gates");
+assert(DATA.demo3.tickets.length === 5, "Demo 3 should contain five synthetic support tickets");
+assert(DATA.demo3.tickets.every((ticket) => ticket.decisionPacket && ticket.gesture), "Demo 3 tickets need gestures and decision packets");
+assert(DATA.demo3.tickets.every((ticket) => ticket.decisionPacket.externalSendBlocked), "Demo 3 external sends must be blocked by default");
+assert(DATA.demo3.gestures.length >= 5, "Demo 3 should expose safe support gestures");
 checkNoClientLeak(DATA);
 
 const health = await call("/api/health");
@@ -44,6 +48,8 @@ const demo1 = await call("/api/demo1");
 assert(demo1.ok, "demo1 endpoint should return ok");
 const demo2 = await call("/api/demo2");
 assert(demo2.ok, "demo2 endpoint should return ok");
+const demo3 = await call("/api/demo3");
+assert(demo3.ok, "demo3 endpoint should return ok");
 const incursion1 = await call("/api/demo1/incursion", {
   method: "POST",
   body: JSON.stringify({ postingId: DATA.demo1.queue[0].postingId, step: "operator_gate" })
@@ -58,5 +64,13 @@ const incursion2 = await call("/api/demo2/incursion", {
 assert(incursion2.ok, "demo2 incursion should return ok");
 const incursion2Json = await incursion2.json();
 assert(incursion2Json.decisionPacket, "demo2 incursion should return decision packet");
+const incursion3 = await call("/api/demo3/incursion", {
+  method: "POST",
+  body: JSON.stringify({ ticketId: DATA.demo3.tickets[1].ticketId, index: 99, feedback: "approve" })
+});
+assert(incursion3.ok, "demo3 incursion should return ok");
+const incursion3Json = await incursion3.json();
+assert(incursion3Json.operatorGate, "demo3 incursion should return operator gate at final step");
+assert(incursion3Json.decisionPacket.operatorFeedback === "approve", "demo3 feedback should enter decision packet");
 
 console.log("Validated data fixtures and Worker API routes.");

@@ -59,6 +59,10 @@ function findCase(caseId) {
   return DATA.demo2.cases.find((item) => item.case_id === caseId) || DATA.demo2.cases[0];
 }
 
+function findTicket(ticketId) {
+  return DATA.demo3.tickets.find((item) => item.ticketId === ticketId) || DATA.demo3.tickets[0];
+}
+
 function demo1Incursion(postingId, requestedStep = "observe") {
   const role = findRole(postingId);
   const script = DATA.demo1.incursionScript;
@@ -104,6 +108,39 @@ function demo2Incursion(caseId, requestedIndex = 0) {
   };
 }
 
+function demo3Incursion(ticketId, requestedIndex = 0, feedback = "pending") {
+  const selected = findTicket(ticketId);
+  const index = Math.max(0, Math.min(Number(requestedIndex || 0), selected.timeline.length - 1));
+  const activeEvent = selected.timeline[index];
+  const gateReady = index === selected.timeline.length - 1;
+  return {
+    demo: "demo3",
+    ticketId: selected.ticketId,
+    title: selected.title,
+    account: selected.account,
+    activeEvent,
+    completedEvents: selected.timeline.slice(0, index + 1),
+    nextEvent: selected.timeline[index + 1] || null,
+    gesture: selected.gesture,
+    evidence: selected.evidence,
+    retrievedContext: selected.retrievedContext,
+    proposedResponse: selected.proposedResponse,
+    missingEvidence: selected.missingEvidence,
+    feedback,
+    decisionPacket: {
+      ...selected.decisionPacket,
+      operatorFeedback: feedback
+    },
+    operatorGate: gateReady
+      ? {
+          role: "operator",
+          question: selected.operatorQuestion,
+          reason: `${selected.gesture.label}; external send remains blocked until approval.`
+        }
+      : null
+  };
+}
+
 function exportDemo1(postingId) {
   const role = findRole(postingId);
   return {
@@ -124,9 +161,19 @@ function exportDemo2(caseId) {
   };
 }
 
+function exportDemo3(ticketId) {
+  const selected = findTicket(ticketId);
+  return {
+    exportedAt: new Date().toISOString(),
+    kind: "support_triage_packet",
+    sourcePolicy: DATA.sourcePolicy,
+    ticket: selected
+  };
+}
+
 async function assetFallback(request, env) {
   const url = new URL(request.url);
-  if (url.pathname === "/" || url.pathname === "/demo1" || url.pathname === "/demo2") {
+  if (url.pathname === "/" || url.pathname === "/demo1" || url.pathname === "/demo2" || url.pathname === "/demo3") {
     return appShell();
   }
   if (!env.ASSETS) return notFound(url.pathname);
@@ -178,6 +225,19 @@ export default {
 
     if (pathname.startsWith("/api/export/demo2/") && request.method === "GET") {
       return json(exportDemo2(decodeURIComponent(pathname.split("/").pop())));
+    }
+
+    if (pathname === "/api/demo3" && request.method === "GET") {
+      return json(DATA.demo3);
+    }
+
+    if (pathname === "/api/demo3/incursion" && request.method === "POST") {
+      const body = await readBody(request);
+      return json(demo3Incursion(body.ticketId, body.index, body.feedback));
+    }
+
+    if (pathname.startsWith("/api/export/demo3/") && request.method === "GET") {
+      return json(exportDemo3(decodeURIComponent(pathname.split("/").pop())));
     }
 
     if (pathname.startsWith("/api/")) return notFound(pathname);

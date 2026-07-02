@@ -1,14 +1,16 @@
 # Operator Proof Demos
 
-Two public-safe portfolio demos hosted on Cloudflare Workers:
+Public-safe portfolio demos hosted on Cloudflare Workers:
 
-- Demo 1: Opportunity Intelligence OS
 - Demo 2: Fiscal Reconciliation Copilot
+- Demo 1: Opportunity Intelligence OS
+- Demo 3: Support Triage HITL Runtime
 
 Live Worker:
 
 - https://operator-proof-demos.liminaught-3fd.workers.dev/demo2
 - https://operator-proof-demos.liminaught-3fd.workers.dev/demo1
+- https://operator-proof-demos.liminaught-3fd.workers.dev/demo3
 
 ## Shape
 
@@ -47,3 +49,6 @@ The generator strips query strings and fragments from source URLs before export.
 - `GET /api/demo2`
 - `POST /api/demo2/incursion`
 - `GET /api/export/demo2/:caseId`
+- `GET /api/demo3`
+- `POST /api/demo3/incursion`
+- `GET /api/export/demo3/:ticketId`

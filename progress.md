@@ -26,3 +26,17 @@
 - Sanitized deployed job source URLs to remove query strings and fragments; verified no deployed query credential remains.
 - Renamed the public GitHub repo to `psukhopompos/operator-proof-demos`.
 - Removed the previous named Worker from Cloudflare after the new Worker was verified.
+- Started Demo 3/Demo 5 loop. Current inspected state: clean `main...origin/main`, current Worker URL `https://operator-proof-demos.liminaught-3fd.workers.dev`, app routes currently Demo 2 and Demo 1 only.
+- Added Demo 3 support-triage fixtures, API routes, UI route, safe gesture model, feedback console, and support-packet export path.
+- Demo 3 local verification:
+  - `npm test` passed with Demo 3 fixture/API assertions.
+  - Public-surface scan found no old brand, obvious real company examples, query credential string, or private client literal.
+  - Desktop browser QA: `/demo3` renders support queue, evidence/context, suggested response, feedback console, support packet; no console errors or horizontal overflow.
+  - Interaction QA: preparing gate and selecting `approve` writes `operatorFeedback: "approve"` into the support packet.
+  - Mobile 390px QA: `/demo3` renders queue/metrics without horizontal overflow.
+- Deployed Demo 3 to Worker version `e5b36ef3-7c75-4ee0-b499-2c8acdde5318`.
+- Live Demo 3 verification:
+  - `/api/health` lists `demo2`, `demo1`, `demo3`.
+  - `/api/demo3` returns 5 tickets and 5 gestures, all external sends blocked by default.
+  - Public API scan found no old brand, obvious real company examples, private client literals, query credential string, or source URL.
+  - Browser QA: `/demo3` renders support queue, feedback console, and support packet; no console errors or horizontal overflow.

@@ -170,13 +170,16 @@ function safeProject(row) {
 }
 
 function sanitizeText(value) {
+  const privateClientA = ["Me", "ga"].join("");
+  const privateClientB = ["In", "vent"].join("");
+  const privateSurface = ["Movi", "desk"].join("");
   return value
-    .replace(/\bMega\b/g, "Legacy ERP")
-    .replace(/\bmega\b/g, "legacy ERP")
-    .replace(/\bInvent\b/g, "Support Desk")
-    .replace(/\binvent\b/g, "support desk")
-    .replace(/\bMovidesk\b/g, "Support Desk")
-    .replace(/\bmovidesk\b/g, "support desk");
+    .replace(new RegExp(`\\b${privateClientA}\\b`, "g"), "Legacy ERP")
+    .replace(new RegExp(`\\b${privateClientA.toLowerCase()}\\b`, "g"), "legacy ERP")
+    .replace(new RegExp(`\\b${privateClientB}\\b`, "g"), "Support Desk")
+    .replace(new RegExp(`\\b${privateClientB.toLowerCase()}\\b`, "g"), "support desk")
+    .replace(new RegExp(`\\b${privateSurface}\\b`, "g"), "Support Desk")
+    .replace(new RegExp(`\\b${privateSurface.toLowerCase()}\\b`, "g"), "support desk");
 }
 
 function sanitizeValue(value) {

@@ -1,18 +1,29 @@
 const app = document.querySelector("#app");
 
+function demoFromPath() {
+  if (location.pathname.includes("demo1")) return "demo1";
+  if (location.pathname.includes("demo3")) return "demo3";
+  return "demo2";
+}
+
 const state = {
-  activeDemo: location.pathname.includes("demo1") ? "demo1" : "demo2",
+  activeDemo: demoFromPath(),
   manifest: null,
   demo1: null,
   demo2: null,
+  demo3: null,
   selectedRoleId: null,
   selectedCaseId: null,
+  selectedTicketId: null,
   roleSearch: "",
   demo1Step: "observe",
   demo1Run: null,
   demo2Index: 0,
   demo2Run: null,
-  demo2Approved: false
+  demo2Approved: false,
+  demo3Index: 0,
+  demo3Run: null,
+  demo3Feedback: "pending"
 };
 
 const escapeMap = {
@@ -57,16 +68,19 @@ function postJson(path, body) {
 
 async function initialize() {
   try {
-    const [manifest, demo1, demo2] = await Promise.all([
+    const [manifest, demo1, demo2, demo3] = await Promise.all([
       getJson("/api/manifest"),
       getJson("/api/demo1"),
-      getJson("/api/demo2")
+      getJson("/api/demo2"),
+      getJson("/api/demo3")
     ]);
     state.manifest = manifest;
     state.demo1 = demo1;
     state.demo2 = demo2;
+    state.demo3 = demo3;
     state.selectedRoleId = demo1.queue[0]?.postingId;
     state.selectedCaseId = demo2.cases[0]?.case_id;
+    state.selectedTicketId = demo3.tickets[0]?.ticketId;
     state.demo1Run = await postJson("/api/demo1/incursion", {
       postingId: state.selectedRoleId,
       step: state.demo1Step
@@ -74,6 +88,11 @@ async function initialize() {
     state.demo2Run = await postJson("/api/demo2/incursion", {
       caseId: state.selectedCaseId,
       index: state.demo2Index
+    });
+    state.demo3Run = await postJson("/api/demo3/incursion", {
+      ticketId: state.selectedTicketId,
+      index: state.demo3Index,
+      feedback: state.demo3Feedback
     });
     render();
   } catch (error) {
@@ -83,7 +102,15 @@ async function initialize() {
 }
 
 function activeTitle() {
-  return state.activeDemo === "demo1" ? "Opportunity Intelligence OS" : "Fiscal Reconciliation Copilot";
+  if (state.activeDemo === "demo1") return "Opportunity Intelligence OS";
+  if (state.activeDemo === "demo3") return "Support Triage HITL Runtime";
+  return "Fiscal Reconciliation Copilot";
+}
+
+function renderActiveDemo() {
+  if (state.activeDemo === "demo1") return renderDemo1();
+  if (state.activeDemo === "demo3") return renderDemo3();
+  return renderDemo2();
 }
 
 function render() {
@@ -100,12 +127,13 @@ function render() {
       <nav class="tabs" aria-label="Demo switcher">
         <button class="tab ${state.activeDemo === "demo2" ? "active" : ""}" data-action="switch-demo" data-demo="demo2">Demo 2</button>
         <button class="tab ${state.activeDemo === "demo1" ? "active" : ""}" data-action="switch-demo" data-demo="demo1">Demo 1</button>
+        <button class="tab ${state.activeDemo === "demo3" ? "active" : ""}" data-action="switch-demo" data-demo="demo3">Demo 3</button>
       </nav>
       <div class="status-strip">
         <span>${h(state.manifest?.sourcePolicy || "")}</span>
       </div>
     </header>
-    ${state.activeDemo === "demo1" ? renderDemo1() : renderDemo2()}
+    ${renderActiveDemo()}
   `;
   bind();
 }
@@ -599,6 +627,250 @@ function renderDecisionPacket(item) {
   `;
 }
 
+function renderDemo3() {
+  const selected = selectedTicket();
+  return `
+    <section class="workspace">
+      <aside class="sidebar">
+        <div class="sidebar-head">
+          <div class="sidebar-title">Synthetic Support Queue</div>
+          <span class="chip">${state.demo3.tickets.length}</span>
+        </div>
+        <div class="list">
+          ${state.demo3.tickets.map(renderTicketItem).join("")}
+        </div>
+      </aside>
+      <div class="content">
+        ${renderSupportMetrics()}
+        ${renderTicketOverview(selected)}
+        <div class="main-grid">
+          <div class="content">
+            ${renderSupportEvidence(selected)}
+            ${renderSupportTimeline(selected)}
+          </div>
+          <div class="content">
+            ${renderSupportResponse(selected)}
+            ${renderSupportOperatorPanel(selected)}
+            ${renderSupportPacket(selected)}
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function selectedTicket() {
+  return state.demo3.tickets.find((item) => item.ticketId === state.selectedTicketId) || state.demo3.tickets[0];
+}
+
+function renderTicketItem(item) {
+  return `
+    <button class="queue-item ${item.ticketId === state.selectedTicketId ? "active" : ""}" data-action="select-ticket" data-id="${h(item.ticketId)}">
+      <div class="queue-line">
+        <span class="rank">${h(item.ticketId.replace("SYN-SUP-", ""))}</span>
+        <span>
+          <span class="item-title">${h(item.title)}</span>
+          <span class="item-subtitle">${h(item.account)} / ${h(item.channel)}</span>
+        </span>
+      </div>
+      <div class="chip-row">
+        <span class="chip ${item.severity === "critical" ? "red" : item.severity === "high" ? "amber" : ""}">${h(item.severity)}</span>
+        <span class="chip green">${h(item.gesture.label)}</span>
+      </div>
+    </button>
+  `;
+}
+
+function renderSupportMetrics() {
+  const metrics = state.demo3.metrics;
+  return `
+    <section class="panel">
+      <div class="panel-body metric-grid">
+        <div class="metric"><div class="metric-label">Tickets</div><div class="metric-value">${h(metrics.ticketCount)}</div><div class="metric-note">synthetic queue</div></div>
+        <div class="metric"><div class="metric-label">Auto Candidates</div><div class="metric-value">${h(metrics.autoCandidates)}</div><div class="metric-note">still gated</div></div>
+        <div class="metric"><div class="metric-label">Review</div><div class="metric-value">${h(metrics.reviewRequired)}</div><div class="metric-note">human copy check</div></div>
+        <div class="metric"><div class="metric-label">Handoffs</div><div class="metric-value">${h(metrics.handoffs)}</div><div class="metric-note">specialist/commercial</div></div>
+      </div>
+    </section>
+  `;
+}
+
+function renderTicketOverview(item) {
+  return `
+    <section class="panel">
+      <div class="panel-body">
+        <div class="case-head">
+          <div>
+            <div class="section-title">${h(item.ticketId)} / ${h(item.account)}</div>
+            <h1 class="copy">${h(item.title)}</h1>
+          </div>
+          <span class="chip ${item.gesture.id === "reject_automation" ? "red" : item.gesture.id === "auto_response_candidate" ? "green" : "amber"}">${h(item.gesture.label)}</span>
+        </div>
+        <p class="copy">${h(item.customerMessage)}</p>
+        <div class="metric-grid">
+          <div class="metric"><div class="metric-label">Severity</div><div class="metric-value small">${h(item.severity)}</div><div class="metric-note">${h(item.channel)}</div></div>
+          <div class="metric"><div class="metric-label">Confidence</div><div class="metric-value">${pct(item.confidence)}</div><div class="metric-note">gesture fit</div></div>
+          <div class="metric"><div class="metric-label">Missing Evidence</div><div class="metric-value">${h(item.missingEvidence.length)}</div><div class="metric-note">before send</div></div>
+          <div class="metric"><div class="metric-label">Send</div><div class="metric-value small">blocked</div><div class="metric-note">${h(item.gesture.sendPermission)}</div></div>
+        </div>
+        <div class="chip-row">${item.tags.map((tag) => `<span class="chip">${h(tag)}</span>`).join("")}</div>
+      </div>
+    </section>
+  `;
+}
+
+function renderSupportEvidence(item) {
+  return `
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Evidence And Context</div>
+        <span class="chip">${h(item.evidence.length)} evidence items</span>
+      </div>
+      <div class="panel-body">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Source</th><th>Fact</th><th>Strength</th></tr></thead>
+            <tbody>
+              ${item.evidence.map((entry) => `
+                <tr>
+                  <td>${h(entry.source)}</td>
+                  <td>${h(entry.fact)}</td>
+                  <td>${h(entry.strength)}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div class="section-title">Retrieved Context</div>
+          <div class="project-list">
+            ${item.retrievedContext.map((context) => `<div class="event-card"><p class="copy small">${h(context)}</p></div>`).join("")}
+          </div>
+        </div>
+        <div>
+          <div class="section-title">Missing Before External Send</div>
+          ${item.missingEvidence.length ? `<div class="chip-row">${item.missingEvidence.map((evidence) => `<span class="chip amber">${h(evidence)}</span>`).join("")}</div>` : `<div class="empty">No missing evidence, but external send is still operator-gated.</div>`}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderSupportTimeline(item) {
+  const run = state.demo3Run;
+  return `
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Triage Movement</div>
+        <span class="chip">${h(run?.completedEvents?.length || 1)}/${h(item.timeline.length)}</span>
+      </div>
+      <div class="panel-body">
+        ${item.timeline.map((event, index) => `
+          <div class="event-card ${index === state.demo3Index ? "active" : ""}">
+            <div class="case-head">
+              <strong>${h(event.label)}</strong>
+              <span class="chip">${h(event.state)}</span>
+            </div>
+            <p class="copy small">${h(event.detail)}</p>
+            <div class="confidence">
+              <div class="confidence-track"><div class="confidence-fill" style="width: ${pct(event.confidence)}"></div></div>
+              <span class="small">${pct(event.confidence)}</span>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderSupportResponse(item) {
+  return `
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Suggested Response</div>
+        <span class="chip">${h(item.gesture.sendPermission)}</span>
+      </div>
+      <div class="panel-body">
+        <div class="browser-shell">
+          <div class="browser-bar">
+            <span class="browser-dot"></span><span class="browser-dot"></span><span class="browser-dot"></span>
+            <span>${h(item.account)} synthetic support composer</span>
+          </div>
+          <div class="browser-content">
+            <div class="field-row">
+              <span>Gesture</span>
+              <span class="field-value">${h(item.gesture.label)}</span>
+            </div>
+            <div class="field-row">
+              <span>Response</span>
+              <span class="field-value">${h(item.proposedResponse)}</span>
+            </div>
+          </div>
+        </div>
+        <p class="copy small muted">${h(item.gesture.description)}</p>
+      </div>
+    </section>
+  `;
+}
+
+function renderSupportOperatorPanel(item) {
+  const gate = state.demo3Run?.operatorGate || {
+    role: "operator",
+    question: item.operatorQuestion,
+    reason: "Prepare the support packet before any synthetic external send."
+  };
+  const approved = state.demo3Feedback === "approve";
+  return `
+    <section class="tool-panel">
+      <div class="panel-head">
+        <div class="panel-title">Feedback Console</div>
+        <span class="chip">${h(state.demo3Feedback)}</span>
+      </div>
+      <div class="panel-body">
+        <div class="gate ${approved ? "approved" : ""}">
+          <div class="section-title">${approved ? "Approved" : "Operator Gate"}</div>
+          <strong>${h(gate.question)}</strong>
+          <p class="copy small">${h(gate.reason)}</p>
+        </div>
+        <div class="action-row">
+          <button class="primary" data-action="advance-demo3">${state.demo3Index >= item.timeline.length - 1 ? "Reset" : "Run next step"}</button>
+          <button data-action="prepare-demo3">Prepare gate</button>
+          <a href="/api/export/demo3/${encodeURIComponent(item.ticketId)}" target="_blank" rel="noreferrer"><button>Export packet</button></a>
+        </div>
+        <div class="project-list">
+          ${item.feedbackOptions.map((option) => `
+            <button class="queue-item ${state.demo3Feedback === option.id ? "active" : ""}" data-action="feedback-demo3" data-feedback="${h(option.id)}">
+              <div class="case-head">
+                <strong>${h(option.label)}</strong>
+                <span class="chip">${h(option.id)}</span>
+              </div>
+              <span class="item-subtitle">${h(option.effect)}</span>
+            </button>
+          `).join("")}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderSupportPacket(item) {
+  const packet = state.demo3Run?.decisionPacket || item.decisionPacket;
+  return `
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Support Packet</div>
+        <span class="chip">${h(packet.expectedPostState)}</span>
+      </div>
+      <div class="panel-body">
+        <div class="json-shell">
+          <div class="json-bar">${h(item.exportName)}</div>
+          <pre class="json-content">${h(JSON.stringify(packet, null, 2))}</pre>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function bind() {
   document.querySelectorAll("[data-action]").forEach((element) => {
     element.addEventListener("click", handleAction);
@@ -609,7 +881,7 @@ function bind() {
 }
 
 function switchPath(demo) {
-  const nextPath = demo === "demo1" ? "/demo1" : "/demo2";
+  const nextPath = demo === "demo1" ? "/demo1" : demo === "demo3" ? "/demo3" : "/demo2";
   if (location.pathname !== nextPath) history.pushState({}, "", nextPath);
 }
 
@@ -680,6 +952,56 @@ async function handleAction(event) {
     state.demo2Index = 0;
     state.demo2Run = await postJson("/api/demo2/incursion", { caseId: state.selectedCaseId, index: state.demo2Index });
     render();
+    return;
+  }
+
+  if (action === "select-ticket") {
+    state.selectedTicketId = button.dataset.id;
+    state.demo3Index = 0;
+    state.demo3Feedback = "pending";
+    state.demo3Run = await postJson("/api/demo3/incursion", {
+      ticketId: state.selectedTicketId,
+      index: state.demo3Index,
+      feedback: state.demo3Feedback
+    });
+    render();
+    return;
+  }
+
+  if (action === "advance-demo3") {
+    const selected = selectedTicket();
+    state.demo3Index = state.demo3Index >= selected.timeline.length - 1 ? 0 : state.demo3Index + 1;
+    state.demo3Feedback = "pending";
+    state.demo3Run = await postJson("/api/demo3/incursion", {
+      ticketId: state.selectedTicketId,
+      index: state.demo3Index,
+      feedback: state.demo3Feedback
+    });
+    render();
+    return;
+  }
+
+  if (action === "prepare-demo3") {
+    const selected = selectedTicket();
+    state.demo3Index = selected.timeline.length - 1;
+    state.demo3Run = await postJson("/api/demo3/incursion", {
+      ticketId: state.selectedTicketId,
+      index: state.demo3Index,
+      feedback: state.demo3Feedback
+    });
+    render();
+    return;
+  }
+
+  if (action === "feedback-demo3") {
+    state.demo3Index = selectedTicket().timeline.length - 1;
+    state.demo3Feedback = button.dataset.feedback || "pending";
+    state.demo3Run = await postJson("/api/demo3/incursion", {
+      ticketId: state.selectedTicketId,
+      index: state.demo3Index,
+      feedback: state.demo3Feedback
+    });
+    render();
   }
 }
 
@@ -695,7 +1017,7 @@ function handleSearch(event) {
 }
 
 window.addEventListener("popstate", () => {
-  state.activeDemo = location.pathname.includes("demo1") ? "demo1" : "demo2";
+  state.activeDemo = demoFromPath();
   render();
 });
 
