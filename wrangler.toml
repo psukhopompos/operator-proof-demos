@@ -1,0 +1,11 @@
+name = "liminaut-proof-demos"
+main = "src/index.js"
+compatibility_date = "2025-07-05"
+account_id = "3fd9a5d35dd996a69a31322005ad7dec"
+workers_dev = true
+preview_urls = true
+
+[assets]
+directory = "./site"
+binding = "ASSETS"
+run_worker_first = true
