@@ -40,3 +40,17 @@
   - `/api/demo3` returns 5 tickets and 5 gestures, all external sends blocked by default.
   - Public API scan found no old brand, obvious real company examples, private client literals, query credential string, or source URL.
   - Browser QA: `/demo3` renders support queue, feedback console, and support packet; no console errors or horizontal overflow.
+- Added Demo 5 multi-lens eval fixtures, API routes, UI route, temperature-run matrix, frontier selector, incursion timeline, and exportable eval packet.
+- Demo 5 local verification:
+  - `npm test` passed with Demo 5 fixture/API assertions, full timeline assertion, no-external-mutation assertion, and cross-lens run fallback assertion.
+  - `npm audit --omit=dev` found 0 vulnerabilities.
+  - Public-surface scan found no old brand, obvious real company examples, private client literals, or query credential string.
+  - Browser QA: `/demo5` renders lens groups, corpus, temperature runs, frontier selection, eval packet, and no horizontal overflow.
+  - Interaction QA: selecting a lens/run and preparing the packet updates the selected run, preserves `externalMutation: false`, and reaches `frontier_candidate_ready`.
+  - Mobile 390px QA: `/demo5` renders without horizontal overflow.
+- Deployed Demo 5 to Worker version `cdfc1eeb-e8c4-4ebe-841e-83c898f378dc`.
+- Live Demo 5 verification:
+  - `/api/health` lists `demo2`, `demo1`, `demo3`, `demo5`.
+  - `/api/demo5` returns 6 corpus traces, 5 lens groups, 15 temperature runs, and 5 frontier picks.
+  - Cross-lens run mismatch falls back to a run from the selected lens.
+  - Browser QA: `/demo5` renders the full eval lab, updates packets after lens selection, exposes no old brand/real-example hits, and has no horizontal overflow.

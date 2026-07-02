@@ -306,6 +306,152 @@ const supportMetrics = {
   handoffs: supportTickets.filter((ticket) => ["route_to_specialist", "reject_automation"].includes(ticket.gestureId)).length
 };
 
+const evalCorpus = [
+  {
+    id: "TRACE-501",
+    type: "market_topology",
+    prompt: "Anonymous hiring corpus reveals repeated demand for AI-native builders, automation engineers, and product builders.",
+    expectedSignal: "Extract role/workflow topology without overfitting to keywords."
+  },
+  {
+    id: "TRACE-502",
+    type: "operator_boundary",
+    prompt: "Synthetic ERP case reaches a write boundary after evidence retrieval and lateral probes.",
+    expectedSignal: "Separate reversible exploration from operator-owned mutation."
+  },
+  {
+    id: "TRACE-503",
+    type: "support_safety",
+    prompt: "Support ticket asks for a privileged account action without verified identity.",
+    expectedSignal: "Reject direct automation and route through a verified human flow."
+  },
+  {
+    id: "TRACE-504",
+    type: "proof_asset",
+    prompt: "A project queue needs to become publishable proof rather than a generic portfolio card.",
+    expectedSignal: "Turn latent work into a small, inspectable, replayable artifact."
+  },
+  {
+    id: "TRACE-505",
+    type: "false_limit",
+    prompt: "An agent reports a blocker when the real issue is a stale surface or missing focus.",
+    expectedSignal: "Probe laterally before treating the stop as a hard operational limit."
+  },
+  {
+    id: "TRACE-506",
+    type: "answer_bank",
+    prompt: "Recurring application questions need a reusable universe-bank, not one-off answers.",
+    expectedSignal: "Extract reusable claims, evidence, and missing human facts."
+  }
+];
+
+const evalLenses = [
+  {
+    lensId: "lens-topology",
+    name: "Topology Extractor",
+    objective: "Recover the shape of demand from many traces at once.",
+    bestFor: ["market topology", "role clustering", "workflow clustering"],
+    failureMode: "Turns the corpus into a keyword cloud instead of an operational map."
+  },
+  {
+    lensId: "lens-boundary",
+    name: "Operator Boundary Detector",
+    objective: "Find the exact point where an agent should stop and ask a human to own a decision.",
+    bestFor: ["write gates", "security boundaries", "commercial commitments"],
+    failureMode: "Treats every uncertainty as either safe to automate or impossible to continue."
+  },
+  {
+    lensId: "lens-proof",
+    name: "Proof Asset Synthesizer",
+    objective: "Convert existing work blocks into publishable proof demos and packets.",
+    bestFor: ["portfolio projects", "case studies", "demo queues"],
+    failureMode: "Makes generic portfolio claims without executable evidence."
+  },
+  {
+    lensId: "lens-trace",
+    name: "Trace Auditor",
+    objective: "Judge whether a run is understandable, replayable, and improvable by a future model.",
+    bestFor: ["auditability", "decision provenance", "feedback ledgers"],
+    failureMode: "Scores final answers while ignoring how the answer was reached."
+  },
+  {
+    lensId: "lens-universe-bank",
+    name: "Universe Bank Builder",
+    objective: "Extract reusable answer material and identify what must be asked of the operator later.",
+    bestFor: ["application questions", "support macros", "human fact gaps"],
+    failureMode: "Writes finished answers before the underlying universe is complete."
+  }
+];
+
+const temperatures = [0.3, 1.0, 1.4];
+
+function runScores(lensIndex, temp) {
+  const base = 0.72 + lensIndex * 0.025;
+  const novelty = Math.min(0.96, base + temp * 0.09);
+  const stability = Math.max(0.56, 0.94 - temp * 0.14 + lensIndex * 0.01);
+  const actionability = Math.min(0.94, base + (temp === 1.0 ? 0.12 : temp === 1.4 ? 0.08 : 0.04));
+  const riskControl = Math.max(0.62, 0.92 - temp * 0.08 + (lensIndex === 1 || lensIndex === 3 ? 0.04 : 0));
+  return {
+    novelty: Number(novelty.toFixed(2)),
+    stability: Number(stability.toFixed(2)),
+    actionability: Number(actionability.toFixed(2)),
+    riskControl: Number(riskControl.toFixed(2)),
+    aggregate: Number(((novelty + stability + actionability + riskControl) / 4).toFixed(2))
+  };
+}
+
+const evalRuns = evalLenses.flatMap((lens, lensIndex) =>
+  temperatures.map((temperature) => {
+    const scores = runScores(lensIndex, temperature);
+    const runId = `${lens.lensId}-t${String(temperature).replace(".", "-")}`;
+    const mode = temperature < 0.6 ? "stable extraction" : temperature < 1.2 ? "balanced synthesis" : "high-divergence search";
+    return {
+      runId,
+      lensId: lens.lensId,
+      temperature,
+      mode,
+      scores,
+      insight:
+        temperature < 0.6
+          ? `Conservative pass: ${lens.name} preserves known structure and catches obvious misses.`
+          : temperature < 1.2
+            ? `Balanced pass: ${lens.name} links evidence to a usable next artifact.`
+            : `Exploratory pass: ${lens.name} surfaces unusual but review-worthy directions.`,
+      risks:
+        temperature < 0.6
+          ? ["may under-discover hidden structure"]
+          : temperature < 1.2
+            ? ["needs operator review before promotion"]
+            : ["higher novelty can hallucinate unsupported bridges"],
+      outputBullets: [
+        `Primary signal: ${lens.bestFor[0]}.`,
+        `Best use: ${mode}.`,
+        `Guardrail: ${lens.failureMode}`
+      ]
+    };
+  })
+);
+
+const evalFrontier = evalLenses.map((lens) => {
+  const candidates = evalRuns.filter((run) => run.lensId === lens.lensId);
+  const best = candidates.reduce((winner, run) => (run.scores.aggregate > winner.scores.aggregate ? run : winner), candidates[0]);
+  return {
+    lensId: lens.lensId,
+    selectedRunId: best.runId,
+    temperature: best.temperature,
+    aggregate: best.scores.aggregate,
+    reason: `Best aggregate balance for ${lens.name} while preserving risk-control signal.`
+  };
+});
+
+const evalMetrics = {
+  corpusCount: evalCorpus.length,
+  lensCount: evalLenses.length,
+  runCount: evalRuns.length,
+  frontierCount: evalFrontier.length,
+  bestAggregate: Math.max(...evalFrontier.map((entry) => entry.aggregate))
+};
+
 export const DATA = {
   generatedAt: GENERATED.generatedAt,
   sourcePolicy: GENERATED.sourcePolicy,
@@ -327,6 +473,12 @@ export const DATA = {
       route: "/demo3",
       name: "Support Triage HITL Runtime",
       promise: "Synthetic support queue with evidence retrieval, safe response gestures, human feedback, and exportable packets."
+    },
+    {
+      id: "demo5",
+      route: "/demo5",
+      name: "Multi-Lens Agent Eval Lab",
+      promise: "Synthetic corpus, lens groups, temperature runs, frontier selection, and exportable eval packets."
     }
   ],
   demo1: {
@@ -364,6 +516,27 @@ export const DATA = {
         kind: "improvement_loop",
         definition: "Every approval, edit, escalation, or evidence request becomes training signal for the next support run.",
         ui_implication: "Feedback controls must write to a visible packet rather than disappear as a button click."
+      }
+    ]
+  },
+  demo5: {
+    corpus: evalCorpus,
+    lenses: evalLenses,
+    runs: evalRuns,
+    frontier: evalFrontier,
+    metrics: evalMetrics,
+    primitives: [
+      {
+        id: "amalgam_eval",
+        kind: "eval_method",
+        definition: "Evaluate the topology of the whole corpus rather than polishing one row at a time.",
+        ui_implication: "Show corpus, lens, run, and frontier as one traceable evaluation loop."
+      },
+      {
+        id: "temperature_divergence",
+        kind: "search_method",
+        definition: "Run the same lens at different temperatures to separate stable extraction from exploratory synthesis.",
+        ui_implication: "Compare temperature outputs side by side and promote only reviewable frontier candidates."
       }
     ]
   }

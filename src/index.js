@@ -63,6 +63,15 @@ function findTicket(ticketId) {
   return DATA.demo3.tickets.find((item) => item.ticketId === ticketId) || DATA.demo3.tickets[0];
 }
 
+function findLens(lensId) {
+  return DATA.demo5.lenses.find((item) => item.lensId === lensId) || DATA.demo5.lenses[0];
+}
+
+function findEvalRun(runId, lensId) {
+  const lens = findLens(lensId);
+  return DATA.demo5.runs.find((item) => item.runId === runId && item.lensId === lens.lensId) || DATA.demo5.runs.find((item) => item.lensId === lens.lensId) || DATA.demo5.runs[0];
+}
+
 function demo1Incursion(postingId, requestedStep = "observe") {
   const role = findRole(postingId);
   const script = DATA.demo1.incursionScript;
@@ -141,6 +150,73 @@ function demo3Incursion(ticketId, requestedIndex = 0, feedback = "pending") {
   };
 }
 
+function demo5Incursion(lensId, runId, requestedIndex = 0) {
+  const lens = findLens(lensId);
+  const selectedRun = findEvalRun(runId, lens.lensId);
+  const lensRuns = DATA.demo5.runs.filter((run) => run.lensId === lens.lensId);
+  const frontier = DATA.demo5.frontier.find((entry) => entry.lensId === lens.lensId);
+  const timeline = [
+    {
+      state: "corpus_loaded",
+      label: "Load Corpus",
+      detail: `${DATA.demo5.corpus.length} synthetic traces loaded across market, operator, support, proof, and answer-bank signals.`,
+      confidence: 0.74
+    },
+    {
+      state: "lens_applied",
+      label: "Apply Lens",
+      detail: `${lens.name}: ${lens.objective}`,
+      confidence: 0.82
+    },
+    {
+      state: "temperature_compared",
+      label: "Compare Runs",
+      detail: `${lensRuns.length} temperature runs compared for stability, novelty, actionability, and risk control.`,
+      confidence: 0.86
+    },
+    {
+      state: "frontier_selected",
+      label: "Select Frontier",
+      detail: frontier.reason,
+      confidence: frontier.aggregate
+    },
+    {
+      state: "packet_ready",
+      label: "Export Packet",
+      detail: "Eval packet is ready for operator review and future model replay.",
+      confidence: selectedRun.scores.aggregate
+    }
+  ];
+  const index = Math.max(0, Math.min(Number(requestedIndex || 0), timeline.length - 1));
+  return {
+    demo: "demo5",
+    lensId: lens.lensId,
+    runId: selectedRun.runId,
+    timeline,
+    activeEvent: timeline[index],
+    completedEvents: timeline.slice(0, index + 1),
+    nextEvent: timeline[index + 1] || null,
+    lens,
+    selectedRun,
+    lensRuns,
+    frontier,
+    corpus: DATA.demo5.corpus,
+    decisionPacket: {
+      lensId: lens.lensId,
+      lensName: lens.name,
+      selectedRunId: selectedRun.runId,
+      selectedTemperature: selectedRun.temperature,
+      scores: selectedRun.scores,
+      promotedBy: frontier.reason,
+      outputBullets: selectedRun.outputBullets,
+      risks: selectedRun.risks,
+      replayInputs: DATA.demo5.corpus.map((item) => item.id),
+      externalMutation: false,
+      expectedPostState: "frontier_candidate_ready"
+    }
+  };
+}
+
 function exportDemo1(postingId) {
   const role = findRole(postingId);
   return {
@@ -171,9 +247,18 @@ function exportDemo3(ticketId) {
   };
 }
 
+function exportDemo5(lensId, runId) {
+  return {
+    exportedAt: new Date().toISOString(),
+    kind: "multi_lens_eval_packet",
+    sourcePolicy: DATA.sourcePolicy,
+    ...demo5Incursion(lensId, runId, 4)
+  };
+}
+
 async function assetFallback(request, env) {
   const url = new URL(request.url);
-  if (url.pathname === "/" || url.pathname === "/demo1" || url.pathname === "/demo2" || url.pathname === "/demo3") {
+  if (url.pathname === "/" || url.pathname === "/demo1" || url.pathname === "/demo2" || url.pathname === "/demo3" || url.pathname === "/demo5") {
     return appShell();
   }
   if (!env.ASSETS) return notFound(url.pathname);
@@ -238,6 +323,20 @@ export default {
 
     if (pathname.startsWith("/api/export/demo3/") && request.method === "GET") {
       return json(exportDemo3(decodeURIComponent(pathname.split("/").pop())));
+    }
+
+    if (pathname === "/api/demo5" && request.method === "GET") {
+      return json(DATA.demo5);
+    }
+
+    if (pathname === "/api/demo5/incursion" && request.method === "POST") {
+      const body = await readBody(request);
+      return json(demo5Incursion(body.lensId, body.runId, body.index));
+    }
+
+    if (pathname.startsWith("/api/export/demo5/") && request.method === "GET") {
+      const parts = pathname.split("/");
+      return json(exportDemo5(decodeURIComponent(parts.at(-2)), decodeURIComponent(parts.at(-1))));
     }
 
     if (pathname.startsWith("/api/")) return notFound(pathname);

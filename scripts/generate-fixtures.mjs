@@ -423,7 +423,7 @@ const packets = Object.fromEntries(priorityRoles.map((role) => {
 
 const generated = sanitizeValue({
   generatedAt: new Date().toISOString(),
-  sourcePolicy: "Derived public job metadata plus synthetic fiscal cases only. No private client data or live application submissions.",
+  sourcePolicy: "Derived public-safe job metadata plus synthetic fiscal, support, and eval cases only. No private client data or live external submissions.",
   topology: {
     postingCount: topologyRows.length,
     roleArchetypes: topCounts(topologyRows, "canonical_role_archetype", 10),

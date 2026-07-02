@@ -3,6 +3,7 @@ const app = document.querySelector("#app");
 function demoFromPath() {
   if (location.pathname.includes("demo1")) return "demo1";
   if (location.pathname.includes("demo3")) return "demo3";
+  if (location.pathname.includes("demo5")) return "demo5";
   return "demo2";
 }
 
@@ -12,9 +13,12 @@ const state = {
   demo1: null,
   demo2: null,
   demo3: null,
+  demo5: null,
   selectedRoleId: null,
   selectedCaseId: null,
   selectedTicketId: null,
+  selectedLensId: null,
+  selectedRunId: null,
   roleSearch: "",
   demo1Step: "observe",
   demo1Run: null,
@@ -23,7 +27,9 @@ const state = {
   demo2Approved: false,
   demo3Index: 0,
   demo3Run: null,
-  demo3Feedback: "pending"
+  demo3Feedback: "pending",
+  demo5Index: 0,
+  demo5Run: null
 };
 
 const escapeMap = {
@@ -68,19 +74,25 @@ function postJson(path, body) {
 
 async function initialize() {
   try {
-    const [manifest, demo1, demo2, demo3] = await Promise.all([
+    const [manifest, demo1, demo2, demo3, demo5] = await Promise.all([
       getJson("/api/manifest"),
       getJson("/api/demo1"),
       getJson("/api/demo2"),
-      getJson("/api/demo3")
+      getJson("/api/demo3"),
+      getJson("/api/demo5")
     ]);
     state.manifest = manifest;
     state.demo1 = demo1;
     state.demo2 = demo2;
     state.demo3 = demo3;
+    state.demo5 = demo5;
     state.selectedRoleId = demo1.queue[0]?.postingId;
     state.selectedCaseId = demo2.cases[0]?.case_id;
     state.selectedTicketId = demo3.tickets[0]?.ticketId;
+    state.selectedLensId = demo5.lenses[0]?.lensId;
+    state.selectedRunId =
+      demo5.frontier.find((entry) => entry.lensId === state.selectedLensId)?.selectedRunId ||
+      demo5.runs.find((run) => run.lensId === state.selectedLensId)?.runId;
     state.demo1Run = await postJson("/api/demo1/incursion", {
       postingId: state.selectedRoleId,
       step: state.demo1Step
@@ -94,6 +106,11 @@ async function initialize() {
       index: state.demo3Index,
       feedback: state.demo3Feedback
     });
+    state.demo5Run = await postJson("/api/demo5/incursion", {
+      lensId: state.selectedLensId,
+      runId: state.selectedRunId,
+      index: state.demo5Index
+    });
     render();
   } catch (error) {
     app.className = "boot";
@@ -104,12 +121,14 @@ async function initialize() {
 function activeTitle() {
   if (state.activeDemo === "demo1") return "Opportunity Intelligence OS";
   if (state.activeDemo === "demo3") return "Support Triage HITL Runtime";
+  if (state.activeDemo === "demo5") return "Multi-Lens Agent Eval Lab";
   return "Fiscal Reconciliation Copilot";
 }
 
 function renderActiveDemo() {
   if (state.activeDemo === "demo1") return renderDemo1();
   if (state.activeDemo === "demo3") return renderDemo3();
+  if (state.activeDemo === "demo5") return renderDemo5();
   return renderDemo2();
 }
 
@@ -128,6 +147,7 @@ function render() {
         <button class="tab ${state.activeDemo === "demo2" ? "active" : ""}" data-action="switch-demo" data-demo="demo2">Demo 2</button>
         <button class="tab ${state.activeDemo === "demo1" ? "active" : ""}" data-action="switch-demo" data-demo="demo1">Demo 1</button>
         <button class="tab ${state.activeDemo === "demo3" ? "active" : ""}" data-action="switch-demo" data-demo="demo3">Demo 3</button>
+        <button class="tab ${state.activeDemo === "demo5" ? "active" : ""}" data-action="switch-demo" data-demo="demo5">Demo 5</button>
       </nav>
       <div class="status-strip">
         <span>${h(state.manifest?.sourcePolicy || "")}</span>
@@ -871,6 +891,262 @@ function renderSupportPacket(item) {
   `;
 }
 
+function renderDemo5() {
+  const selected = selectedLens();
+  return `
+    <section class="workspace">
+      <aside class="sidebar">
+        <div class="sidebar-head">
+          <div class="sidebar-title">Lens Groups</div>
+          <span class="chip">${state.demo5.lenses.length}</span>
+        </div>
+        <div class="list">
+          ${state.demo5.lenses.map(renderLensItem).join("")}
+        </div>
+      </aside>
+      <div class="content">
+        ${renderEvalMetrics()}
+        ${renderLensOverview(selected)}
+        <div class="main-grid">
+          <div class="content">
+            ${renderCorpusPanel()}
+            ${renderRunMatrix(selected)}
+          </div>
+          <div class="content">
+            ${renderEvalRunner(selected)}
+            ${renderFrontierPanel()}
+            ${renderEvalPacket()}
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function selectedLens() {
+  return state.demo5.lenses.find((item) => item.lensId === state.selectedLensId) || state.demo5.lenses[0];
+}
+
+function selectedEvalRun() {
+  const lens = selectedLens();
+  return state.demo5.runs.find((item) => item.runId === state.selectedRunId) || state.demo5.runs.find((item) => item.lensId === lens.lensId) || state.demo5.runs[0];
+}
+
+function frontierForLens(lensId) {
+  return state.demo5.frontier.find((entry) => entry.lensId === lensId);
+}
+
+function renderLensItem(item) {
+  const frontier = frontierForLens(item.lensId);
+  return `
+    <button class="queue-item ${item.lensId === state.selectedLensId ? "active" : ""}" data-action="select-lens" data-id="${h(item.lensId)}">
+      <div class="queue-line">
+        <span class="rank">${h(item.lensId.replace("lens-", "").slice(0, 3))}</span>
+        <span>
+          <span class="item-title">${h(item.name)}</span>
+          <span class="item-subtitle">${h(item.objective)}</span>
+        </span>
+      </div>
+      <div class="chip-row">
+        <span class="chip green">frontier ${pct(frontier?.aggregate)}</span>
+        <span class="chip">temp ${h(frontier?.temperature)}</span>
+      </div>
+    </button>
+  `;
+}
+
+function renderEvalMetrics() {
+  const metrics = state.demo5.metrics;
+  return `
+    <section class="panel">
+      <div class="panel-body metric-grid">
+        <div class="metric"><div class="metric-label">Corpus</div><div class="metric-value">${h(metrics.corpusCount)}</div><div class="metric-note">synthetic traces</div></div>
+        <div class="metric"><div class="metric-label">Lenses</div><div class="metric-value">${h(metrics.lensCount)}</div><div class="metric-note">evaluation groups</div></div>
+        <div class="metric"><div class="metric-label">Runs</div><div class="metric-value">${h(metrics.runCount)}</div><div class="metric-note">temperature passes</div></div>
+        <div class="metric"><div class="metric-label">Best Frontier</div><div class="metric-value">${pct(metrics.bestAggregate)}</div><div class="metric-note">aggregate score</div></div>
+      </div>
+    </section>
+  `;
+}
+
+function renderLensOverview(item) {
+  const frontier = frontierForLens(item.lensId);
+  return `
+    <section class="panel">
+      <div class="panel-body">
+        <div class="case-head">
+          <div>
+            <div class="section-title">${h(item.lensId)}</div>
+            <h1 class="copy">${h(item.name)}</h1>
+          </div>
+          <span class="chip green">frontier ${pct(frontier?.aggregate)}</span>
+        </div>
+        <p class="copy">${h(item.objective)}</p>
+        <div class="two-col">
+          <div class="project-card">
+            <div class="section-title">Best For</div>
+            <div class="chip-row">${item.bestFor.map((signal) => `<span class="chip">${h(signal)}</span>`).join("")}</div>
+          </div>
+          <div class="project-card">
+            <div class="section-title">Failure Mode</div>
+            <p class="copy small">${h(item.failureMode)}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderCorpusPanel() {
+  return `
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Synthetic Eval Corpus</div>
+        <span class="chip">${state.demo5.corpus.length} traces</span>
+      </div>
+      <div class="panel-body">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Trace</th><th>Type</th><th>Prompt</th><th>Expected Signal</th></tr></thead>
+            <tbody>
+              ${state.demo5.corpus.map((trace) => `
+                <tr>
+                  <td>${h(trace.id)}</td>
+                  <td>${h(trace.type)}</td>
+                  <td>${h(trace.prompt)}</td>
+                  <td>${h(trace.expectedSignal)}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderRunMatrix(lens) {
+  const runs = state.demo5.runs.filter((run) => run.lensId === lens.lensId);
+  return `
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Temperature Runs</div>
+        <span class="chip">${h(runs.length)} runs</span>
+      </div>
+      <div class="panel-body">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Run</th><th>Mode</th><th>Scores</th><th>Risk</th></tr></thead>
+            <tbody>
+              ${runs.map((run) => `
+                <tr>
+                  <td>
+                    <button class="queue-item ${run.runId === state.selectedRunId ? "active" : ""}" data-action="select-eval-run" data-id="${h(run.runId)}">
+                      <span class="item-title">temp ${h(run.temperature)}</span>
+                      <span class="item-subtitle">${h(run.runId)}</span>
+                    </button>
+                  </td>
+                  <td>${h(run.mode)}</td>
+                  <td>
+                    <div class="chip-row">
+                      <span class="score">agg ${pct(run.scores.aggregate)}</span>
+                      <span class="score">nov ${pct(run.scores.novelty)}</span>
+                      <span class="score">stable ${pct(run.scores.stability)}</span>
+                    </div>
+                  </td>
+                  <td>${h(run.risks.join("; "))}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderEvalRunner(lens) {
+  const run = state.demo5Run;
+  const timeline = run?.timeline || [];
+  return `
+    <section class="tool-panel">
+      <div class="panel-head">
+        <div class="panel-title">Lens Incursion</div>
+        <span class="chip">${h((run?.completedEvents || []).length)}/${h(timeline.length || 5)}</span>
+      </div>
+      <div class="panel-body">
+        <div class="stepper">
+          ${timeline.map((event, index) => {
+            const done = (run?.completedEvents || []).some((item) => item.state === event.state);
+            return `
+              <div class="step ${event.state === run?.activeEvent?.state ? "active" : ""} ${done ? "done" : ""}">
+                <span class="step-index">${index + 1}</span>
+                <div>
+                  <strong>${h(event.label)}</strong>
+                  <span class="item-subtitle">${h(event.detail)}</span>
+                  <div class="confidence">
+                    <span class="confidence-track"><span class="confidence-fill" style="width: ${pct(event.confidence)}"></span></span>
+                    <span class="small">${pct(event.confidence)}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+        <div class="action-row">
+          <button class="primary" data-action="advance-demo5">${state.demo5Index >= (timeline.length || 5) - 1 ? "Reset" : "Run next stage"}</button>
+          <button data-action="prepare-demo5">Prepare packet</button>
+          <a href="/api/export/demo5/${encodeURIComponent(lens.lensId)}/${encodeURIComponent(selectedEvalRun().runId)}" target="_blank" rel="noreferrer"><button>Export packet</button></a>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderFrontierPanel() {
+  return `
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Frontier Selection</div>
+        <span class="chip">${state.demo5.frontier.length}</span>
+      </div>
+      <div class="panel-body project-list">
+        ${state.demo5.frontier.map((entry) => {
+          const lens = state.demo5.lenses.find((item) => item.lensId === entry.lensId);
+          return `
+            <button class="queue-item ${entry.selectedRunId === state.selectedRunId ? "active" : ""}" data-action="select-frontier-run" data-lens="${h(entry.lensId)}" data-run="${h(entry.selectedRunId)}">
+              <div class="case-head">
+                <strong>${h(lens?.name || entry.lensId)}</strong>
+                <span class="chip green">${pct(entry.aggregate)}</span>
+              </div>
+              <span class="item-subtitle">${h(entry.selectedRunId)} / temp ${h(entry.temperature)}</span>
+              <span class="item-subtitle">${h(entry.reason)}</span>
+            </button>
+          `;
+        }).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderEvalPacket() {
+  const packet = state.demo5Run?.decisionPacket || {};
+  return `
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Eval Packet</div>
+        <span class="chip">${h(packet.expectedPostState || "pending")}</span>
+      </div>
+      <div class="panel-body">
+        <div class="json-shell">
+          <div class="json-bar">${h(packet.selectedRunId || "no-run-selected")}</div>
+          <pre class="json-content">${h(JSON.stringify(packet, null, 2))}</pre>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function bind() {
   document.querySelectorAll("[data-action]").forEach((element) => {
     element.addEventListener("click", handleAction);
@@ -881,7 +1157,7 @@ function bind() {
 }
 
 function switchPath(demo) {
-  const nextPath = demo === "demo1" ? "/demo1" : demo === "demo3" ? "/demo3" : "/demo2";
+  const nextPath = demo === "demo1" ? "/demo1" : demo === "demo3" ? "/demo3" : demo === "demo5" ? "/demo5" : "/demo2";
   if (location.pathname !== nextPath) history.pushState({}, "", nextPath);
 }
 
@@ -1000,6 +1276,70 @@ async function handleAction(event) {
       ticketId: state.selectedTicketId,
       index: state.demo3Index,
       feedback: state.demo3Feedback
+    });
+    render();
+    return;
+  }
+
+  if (action === "select-lens") {
+    state.selectedLensId = button.dataset.id;
+    state.selectedRunId =
+      frontierForLens(state.selectedLensId)?.selectedRunId ||
+      state.demo5.runs.find((run) => run.lensId === state.selectedLensId)?.runId;
+    state.demo5Index = 0;
+    state.demo5Run = await postJson("/api/demo5/incursion", {
+      lensId: state.selectedLensId,
+      runId: state.selectedRunId,
+      index: state.demo5Index
+    });
+    render();
+    return;
+  }
+
+  if (action === "select-eval-run") {
+    state.selectedRunId = button.dataset.id;
+    state.demo5Index = 0;
+    state.demo5Run = await postJson("/api/demo5/incursion", {
+      lensId: state.selectedLensId,
+      runId: state.selectedRunId,
+      index: state.demo5Index
+    });
+    render();
+    return;
+  }
+
+  if (action === "select-frontier-run") {
+    state.selectedLensId = button.dataset.lens;
+    state.selectedRunId = button.dataset.run;
+    state.demo5Index = 0;
+    state.demo5Run = await postJson("/api/demo5/incursion", {
+      lensId: state.selectedLensId,
+      runId: state.selectedRunId,
+      index: state.demo5Index
+    });
+    render();
+    return;
+  }
+
+  if (action === "advance-demo5") {
+    const max = state.demo5Run?.timeline?.length || 5;
+    state.demo5Index = state.demo5Index >= max - 1 ? 0 : state.demo5Index + 1;
+    state.demo5Run = await postJson("/api/demo5/incursion", {
+      lensId: state.selectedLensId,
+      runId: state.selectedRunId,
+      index: state.demo5Index
+    });
+    render();
+    return;
+  }
+
+  if (action === "prepare-demo5") {
+    const max = state.demo5Run?.timeline?.length || 5;
+    state.demo5Index = max - 1;
+    state.demo5Run = await postJson("/api/demo5/incursion", {
+      lensId: state.selectedLensId,
+      runId: state.selectedRunId,
+      index: state.demo5Index
     });
     render();
   }

@@ -5,12 +5,14 @@ Public-safe portfolio demos hosted on Cloudflare Workers:
 - Demo 2: Fiscal Reconciliation Copilot
 - Demo 1: Opportunity Intelligence OS
 - Demo 3: Support Triage HITL Runtime
+- Demo 5: Multi-Lens Agent Eval Lab
 
 Live Worker:
 
 - https://operator-proof-demos.liminaught-3fd.workers.dev/demo2
 - https://operator-proof-demos.liminaught-3fd.workers.dev/demo1
 - https://operator-proof-demos.liminaught-3fd.workers.dev/demo3
+- https://operator-proof-demos.liminaught-3fd.workers.dev/demo5
 
 ## Shape
 
@@ -35,7 +37,7 @@ npm run deploy
 
 ## Data Policy
 
-The deployed bundle contains public job metadata plus synthetic fiscal cases. It does not include raw private client data, live application data, secrets, or external submission credentials.
+The deployed bundle contains public-safe anonymous job metadata plus synthetic fiscal, support, and eval cases. It does not include raw private client data, live application data, secrets, or external submission credentials.
 
 The generator strips query strings and fragments from source URLs before export.
 
@@ -52,3 +54,6 @@ The generator strips query strings and fragments from source URLs before export.
 - `GET /api/demo3`
 - `POST /api/demo3/incursion`
 - `GET /api/export/demo3/:ticketId`
+- `GET /api/demo5`
+- `POST /api/demo5/incursion`
+- `GET /api/export/demo5/:lensId/:runId`

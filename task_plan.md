@@ -26,8 +26,8 @@ Demo 4 is intentionally not to be built yet.
 - [x] Initialize git, create GitHub remote, and push.
 - [x] Add Demo 3 support triage runtime with synthetic tickets, safe gestures, feedback ledger, and export packets.
 - [x] Verify Demo 3 locally and on the deployed Worker, then push.
-- [ ] Add Demo 5 multi-lens eval lab with corpus, lens runs, frontier, and export packets.
-- [ ] Verify Demo 5 locally and on the deployed Worker, then push.
+- [x] Add Demo 5 multi-lens eval lab with corpus, lens runs, frontier, and export packets.
+- [x] Verify Demo 5 locally and on the deployed Worker, then push.
 - [ ] Pause before Demo 4 and discuss scope with the user.
 
 ## Boundaries
@@ -45,3 +45,4 @@ Demo 4 is intentionally not to be built yet.
 | Error | Attempt | Resolution |
 |-------|---------|------------|
 | `task_plan.md` had stale pending status from the initial two-demo build | First Demo 3 planning update | Replaced the plan with the current suite objective and accurate completion state |
+| Live browser click selected a different lens during one QA pass | Repeated interaction after fixing viewport and starting from a fresh tab | Confirmed deterministic Demo 5 lens selection and packet update on the deployed Worker |
