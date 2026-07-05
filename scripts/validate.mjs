@@ -40,12 +40,8 @@ assert(DATA.demo3.tickets.length === 5, "Demo 3 should contain five synthetic su
 assert(DATA.demo3.tickets.every((ticket) => ticket.decisionPacket && ticket.gesture), "Demo 3 tickets need gestures and decision packets");
 assert(DATA.demo3.tickets.every((ticket) => ticket.decisionPacket.externalSendBlocked), "Demo 3 external sends must be blocked by default");
 assert(DATA.demo3.gestures.length >= 5, "Demo 3 should expose safe support gestures");
-assert(DATA.demo5.corpus.length === 6, "Demo 5 should contain six synthetic eval traces");
-assert(DATA.demo5.lenses.length === 5, "Demo 5 should contain five lens groups");
-assert(DATA.demo5.runs.length === 15, "Demo 5 should contain three temperature runs per lens");
-assert(DATA.demo5.frontier.length === DATA.demo5.lenses.length, "Demo 5 should select one frontier run per lens");
-assert(DATA.demo5.runs.every((run) => run.scores && run.outputBullets.length && run.risks.length), "Demo 5 runs need scored outputs and risks");
-assert(DATA.demo5.frontier.every((entry) => DATA.demo5.runs.some((run) => run.runId === entry.selectedRunId)), "Demo 5 frontier must reference valid runs");
+assert(DATA.demos.map((demo) => demo.id).join(",") === "demo2,demo1,demo3", "Public manifest should expose only the first three demos");
+assert(!Object.prototype.hasOwnProperty.call(DATA, "demo5"), "Demo 5 should remain deactivated");
 checkNoClientLeak(DATA);
 
 const health = await call("/api/health");
@@ -57,7 +53,7 @@ assert(demo2.ok, "demo2 endpoint should return ok");
 const demo3 = await call("/api/demo3");
 assert(demo3.ok, "demo3 endpoint should return ok");
 const demo5 = await call("/api/demo5");
-assert(demo5.ok, "demo5 endpoint should return ok");
+assert(demo5.status === 404, "demo5 endpoint should stay inactive");
 const incursion1 = await call("/api/demo1/incursion", {
   method: "POST",
   body: JSON.stringify({ postingId: DATA.demo1.queue[0].postingId, step: "operator_gate" })
@@ -80,29 +76,5 @@ assert(incursion3.ok, "demo3 incursion should return ok");
 const incursion3Json = await incursion3.json();
 assert(incursion3Json.operatorGate, "demo3 incursion should return operator gate at final step");
 assert(incursion3Json.decisionPacket.operatorFeedback === "approve", "demo3 feedback should enter decision packet");
-const incursion5 = await call("/api/demo5/incursion", {
-  method: "POST",
-  body: JSON.stringify({
-    lensId: DATA.demo5.lenses[0].lensId,
-    runId: DATA.demo5.frontier[0].selectedRunId,
-    index: 99
-  })
-});
-assert(incursion5.ok, "demo5 incursion should return ok");
-const incursion5Json = await incursion5.json();
-assert(incursion5Json.timeline.length === 5, "demo5 incursion should return full timeline");
-assert(incursion5Json.decisionPacket.externalMutation === false, "demo5 packet must not mutate external systems");
-assert(incursion5Json.decisionPacket.expectedPostState === "frontier_candidate_ready", "demo5 packet should end at frontier candidate state");
-assert(incursion5Json.decisionPacket.replayInputs.length === DATA.demo5.corpus.length, "demo5 packet should include replay input ids");
-const mismatchedRun = await call("/api/demo5/incursion", {
-  method: "POST",
-  body: JSON.stringify({
-    lensId: DATA.demo5.lenses[0].lensId,
-    runId: DATA.demo5.runs.find((run) => run.lensId !== DATA.demo5.lenses[0].lensId).runId,
-    index: 0
-  })
-});
-const mismatchedRunJson = await mismatchedRun.json();
-assert(mismatchedRunJson.selectedRun.lensId === DATA.demo5.lenses[0].lensId, "demo5 should not mix a run from another lens into the selected lens packet");
 
 console.log("Validated data fixtures and Worker API routes.");

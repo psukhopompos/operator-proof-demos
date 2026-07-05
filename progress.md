@@ -26,7 +26,7 @@
 - Sanitized deployed job source URLs to remove query strings and fragments; verified no deployed query credential remains.
 - Renamed the public GitHub repo to `psukhopompos/operator-proof-demos`.
 - Removed the previous named Worker from Cloudflare after the new Worker was verified.
-- Started Demo 3/Demo 5 loop. Current inspected state: clean `main...origin/main`, current Worker URL `https://operator-proof-demos.liminaught-3fd.workers.dev`, app routes currently Demo 2 and Demo 1 only.
+- Started Demo 3 loop. Current inspected state: clean `main...origin/main`, current Worker URL `https://operator-proof-demos.liminaught-3fd.workers.dev`, app routes currently Demo 2 and Demo 1 only.
 - Added Demo 3 support-triage fixtures, API routes, UI route, safe gesture model, feedback console, and support-packet export path.
 - Demo 3 local verification:
   - `npm test` passed with Demo 3 fixture/API assertions.
@@ -40,18 +40,5 @@
   - `/api/demo3` returns 5 tickets and 5 gestures, all external sends blocked by default.
   - Public API scan found no old brand, obvious real company examples, private client literals, query credential string, or source URL.
   - Browser QA: `/demo3` renders support queue, feedback console, and support packet; no console errors or horizontal overflow.
-- Added Demo 5 multi-lens eval fixtures, API routes, UI route, temperature-run matrix, frontier selector, incursion timeline, and exportable eval packet.
-- Demo 5 local verification:
-  - `npm test` passed with Demo 5 fixture/API assertions, full timeline assertion, no-external-mutation assertion, and cross-lens run fallback assertion.
-  - `npm audit --omit=dev` found 0 vulnerabilities.
-  - Public-surface scan found no old brand, obvious real company examples, private client literals, or query credential string.
-  - Browser QA: `/demo5` renders lens groups, corpus, temperature runs, frontier selection, eval packet, and no horizontal overflow.
-  - Interaction QA: selecting a lens/run and preparing the packet updates the selected run, preserves `externalMutation: false`, and reaches `frontier_candidate_ready`.
-  - Mobile 390px QA: `/demo5` renders without horizontal overflow.
-- Deployed Demo 5 to Worker version `cdfc1eeb-e8c4-4ebe-841e-83c898f378dc`.
-- Live Demo 5 verification:
-  - `/api/health` lists `demo2`, `demo1`, `demo3`, `demo5`.
-  - `/api/demo5` returns 6 corpus traces, 5 lens groups, 15 temperature runs, and 5 frontier picks.
-  - Cross-lens run mismatch falls back to a run from the selected lens.
-  - Browser QA: `/demo5` renders the full eval lab, updates packets after lens selection, exposes no old brand/real-example hits, and has no horizontal overflow.
+- Deactivated Demo 5 on 2026-07-05 by request. The public suite should expose only Demo 2, Demo 1, and Demo 3.
 - Paused before Demo 4 as the next product/design decision point. No Demo 4 code has been started.
